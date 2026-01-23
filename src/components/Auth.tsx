@@ -17,8 +17,8 @@ export const Auth = () => {
             options: {
                 // Dynamically choose the redirect based on the environment
                 redirectTo: import.meta.env.DEV 
-                ? 'http://localhost:5173/yamabiko-editor/auth/v1/callback' 
-                : 'https://qqdifbyigvbctnumzitl.supabase.co/auth/v1/callback',
+                ? 'http://localhost:5173/yamabiko-editor/' 
+                : 'https://antonfogelstrom.github.io/yamabiko-editor/',
             },
         });
         if (error) throw error;
