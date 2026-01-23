@@ -14,20 +14,16 @@ export const Auth = () => {
     setMessage(null);
 
     try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
+        const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'github',
+            options: {
+                // Dynamically choose the redirect based on the environment
+                redirectTo: import.meta.env.DEV 
+                ? 'http://localhost:5173/yamabiko-editor/auth/v1/callback' 
+                : undefined,
+            },
         });
         if (error) throw error;
-        setMessage({ text: 'Check your email for the confirmation link!', type: 'success' });
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      }
     } catch (error: any) {
       setMessage({ text: error.message || 'An error occurred', type: 'error' });
     } finally {
@@ -62,35 +58,13 @@ export const Auth = () => {
         )}
 
         <form onSubmit={handleAuth}>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            placeholder="editor@yamabiko.com"
-          />
-
-          <div style={{ height: '20px' }}></div>
-
-          <label>Password</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            placeholder="••••••••"
-          />
-
-          <div style={{ height: '30px' }}></div>
-
           <button 
             type="submit" 
             className="btn btn-primary" 
             style={{ width: '100%', padding: '12px' }}
             disabled={loading}
           >
-            {loading ? 'Processing...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+            {loading ? 'Processing...' : "Sign in with github"}
           </button>
         </form>
 
