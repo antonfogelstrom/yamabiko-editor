@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
@@ -8,6 +8,9 @@ import {
   type DragEndEvent,
   TouchSensor,
   MouseSensor,
+  DragOverlay,
+  useDroppable,
+  type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -34,18 +37,60 @@ interface Props {
 interface SortableItemProps {
   scene: SceneRow;
   activeId: number | null;
-  onSelect: (id: number) => void;
-  onDelete: (id: number) => void;
-  onClose: () => void;
+  onSelect?: (id: number) => void;
+  onClose?: () => void;
 }
 
-const SortableSceneItem = ({
+/**
+ * 1. Reusable Item UI
+ * Split from the Sortable wrapper so we can render it in the DragOverlay
+ */
+const SceneItemUI = ({
   scene,
   activeId,
+  isDragging,
+  dragOverlay,
   onSelect,
-  onDelete,
   onClose,
-}: SortableItemProps) => {
+}: SortableItemProps & { isDragging?: boolean; dragOverlay?: boolean }) => {
+  return (
+    <div
+      className={`
+        group flex items-center justify-between p-3 rounded-lg cursor-grab active:cursor-grabbing transition-all
+        ${
+          dragOverlay
+            ? "bg-indigo-600 text-white shadow-2xl scale-105 border border-indigo-400"
+            : scene.id === activeId
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-300 hover:bg-slate-800 hover:text-white"
+        }
+        ${isDragging ? "opacity-30" : "opacity-100"}
+      `}
+      onClick={() => {
+        if (!isDragging && onSelect && onClose) {
+          onSelect(scene.id);
+          onClose();
+        }
+      }}
+    >
+      {!onSelect && (
+        <svg
+          className="w-4 h-4 mr-2 opacity-50"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" />
+        </svg>
+      )}
+
+      <span className="truncate font-medium text-sm flex-1 mr-2 select-none">
+        {scene.data.name || "Untitled Scene"}
+      </span>
+    </div>
+  );
+};
+
+const SortableSceneItem = (props: SortableItemProps) => {
   const {
     attributes,
     listeners,
@@ -53,74 +98,57 @@ const SortableSceneItem = ({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: scene.id });
+  } = useSortable({ id: props.scene.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 60 : "auto",
-    opacity: isDragging ? 0.5 : 1,
-    touchAction: "none",
   };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <SceneItemUI {...props} isDragging={isDragging} />
+    </div>
+  );
+};
+
+/**
+ * 2. Trash Zone Component
+ * Detects drops with ID "trash-zone"
+ */
+const TrashDroppable = () => {
+  const { setNodeRef, isOver } = useDroppable({
+    id: "trash-zone",
+  });
 
   return (
     <div
       ref={setNodeRef}
-      {...attributes}
-      {...listeners}
-      style={style}
       className={`
-        group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors
+        w-full h-full min-h-35 rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-2 transition-all duration-200
         ${
-          scene.id === activeId
-            ? "bg-indigo-600 text-white shadow-md"
-            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+          isOver
+            ? "border-red-500 bg-red-500/20 text-red-200 scale-105"
+            : "border-slate-600 bg-slate-800/50 text-slate-400"
         }
       `}
-      onClick={() => {
-        onSelect(scene.id);
-        onClose();
-      }}
     >
-      {/* Drag Handle Icon */}
-      {isDragging && (
-        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" />
-        </svg>
-      )}
-
-      <span className="truncate font-medium text-sm flex-1 mr-2">
-        {scene.data.name || "Untitled Scene"}
+      <svg
+        className={`w-8 h-8 ${isOver ? "animate-bounce" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+      </svg>
+      <span className="text-sm font-bold uppercase tracking-wider">
+        {isOver ? "Release to Delete" : "Drag here to delete"}
       </span>
-
-      {scene.id === activeId && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(scene.id);
-          }}
-          className={`
-            p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity
-            ${scene.id === activeId ? "hover:bg-indigo-700 text-indigo-200" : "hover:bg-slate-700 text-slate-400 hover:text-red-400"}
-            md:opacity-100 focus:opacity-100
-          `}
-          aria-label="Delete scene"
-        >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-            />
-          </svg>
-        </button>
-      )}
     </div>
   );
 };
@@ -136,14 +164,11 @@ export const Sidebar: React.FC<Props> = ({
   onCreate,
   onReorder,
 }) => {
+  const [activeDragId, setActiveDragId] = useState<number | null>(null);
+
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      // Require the mouse to move 5px before dragging starts
-      activationConstraint: { distance: 5 },
-    }),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, {
-      // Press and hold for 250ms to start dragging,
-      // allowing normal scrolling to still work.
       activationConstraint: { delay: 250, tolerance: 5 },
     }),
     useSensor(KeyboardSensor, {
@@ -151,9 +176,24 @@ export const Sidebar: React.FC<Props> = ({
     }),
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDragId(event.active.id as number);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    if (over && active.id !== over.id) {
+    setActiveDragId(null);
+
+    if (!over) return;
+
+    // DELETE LOGIC
+    if (over.id === "trash-zone") {
+      onDelete(active.id as number);
+      return;
+    }
+
+    // REORDER LOGIC
+    if (active.id !== over.id) {
       const oldIndex = scenes.findIndex((s) => s.id === active.id);
       const newIndex = scenes.findIndex((s) => s.id === over.id);
       onReorder(oldIndex, newIndex);
@@ -174,7 +214,6 @@ export const Sidebar: React.FC<Props> = ({
     reader.onload = (event) => {
       try {
         const json = JSON.parse(event.target?.result as string);
-        // Basic validation: check if it has required SceneData fields
         if (json.id && Array.isArray(json.dialogue)) {
           onCreate(json);
         } else {
@@ -188,7 +227,8 @@ export const Sidebar: React.FC<Props> = ({
     e.target.value = "";
   };
 
-  // Base classes for the sidebar container
+  const activeDragScene = scenes.find((s) => s.id === activeDragId);
+
   const sidebarClasses = `
     fixed inset-y-0 left-0 z-50 w-72 bg-slate-900 text-slate-100 transform transition-transform duration-300 ease-in-out
     md:translate-x-0 md:static md:h-screen md:shrink-0 flex flex-col border-r border-slate-800
@@ -197,7 +237,6 @@ export const Sidebar: React.FC<Props> = ({
 
   return (
     <>
-      {/* Mobile Backdrop */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
@@ -206,7 +245,6 @@ export const Sidebar: React.FC<Props> = ({
       )}
 
       <aside className={sidebarClasses}>
-        {/* Header */}
         <div className="p-6 border-b border-slate-800 flex justify-between items-start">
           <div>
             <h2 className="text-xl font-bold tracking-tight text-white">
@@ -221,7 +259,6 @@ export const Sidebar: React.FC<Props> = ({
               </p>
             )}
           </div>
-          {/* Mobile Close Button */}
           <button
             onClick={onClose}
             className="md:hidden text-slate-400 hover:text-white p-1"
@@ -242,13 +279,14 @@ export const Sidebar: React.FC<Props> = ({
           </button>
         </div>
 
-        {/* Scene List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+          onDragCancel={() => setActiveDragId(null)}
+        >
+          <div className="flex-1 overflow-y-auto p-4 space-y-2 relative">
             <SortableContext
               items={scenes.map((s) => s.id)}
               strategy={verticalListSortingStrategy}
@@ -259,78 +297,96 @@ export const Sidebar: React.FC<Props> = ({
                   scene={scene}
                   activeId={activeId}
                   onSelect={onSelect}
-                  onDelete={onDelete}
                   onClose={onClose}
                 />
               ))}
             </SortableContext>
-          </DndContext>
 
-          {scenes.length === 0 && (
-            <div className="text-center py-8 text-slate-500 text-sm">
-              No scenes yet.
-            </div>
-          )}
-        </div>
+            {scenes.length === 0 && (
+              <div className="text-center py-8 text-slate-500 text-sm">
+                No scenes yet.
+              </div>
+            )}
+          </div>
 
-        {/* Footer Actions */}
-        <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-900">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".json"
-            onChange={handleFileChange}
-          />
-          <button
-            onClick={() => {
-              onCreate();
-              onClose();
-            }}
-            className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
+          {/* Footer Area */}
+          <div className="p-4 border-t border-slate-800 bg-slate-900 min-h-45 flex flex-col justify-end">
+            {activeDragId ? (
+              // 3. Show Trash Zone if dragging
+              <TrashDroppable />
+            ) : (
+              // Show standard buttons if NOT dragging
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept=".json"
+                  onChange={handleFileChange}
+                />
+                <button
+                  onClick={() => {
+                    onCreate();
+                    onClose();
+                  }}
+                  className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4v16m8-8H4"
+                    />
+                  </svg>
+                  New Scene
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="hidden md:flex w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium text-sm transition-colors items-center justify-center gap-2 border border-slate-700"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                    />
+                  </svg>
+                  Import JSON
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-2.5 px-4 bg-transparent border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 rounded-lg font-medium text-sm transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* 4. Drag Overlay (Floating Clone) */}
+          <DragOverlay>
+            {activeDragScene ? (
+              <SceneItemUI
+                scene={activeDragScene}
+                activeId={activeId}
+                dragOverlay
               />
-            </svg>
-            New Scene
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="hidden md:flex w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium text-sm transition-colors items-center justify-center gap-2 border border-slate-700"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
-              />
-            </svg>
-            Import JSON
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="w-full py-2.5 px-4 bg-transparent border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 rounded-lg font-medium text-sm transition-colors"
-          >
-            Sign Out
-          </button>
-        </div>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       </aside>
     </>
   );
