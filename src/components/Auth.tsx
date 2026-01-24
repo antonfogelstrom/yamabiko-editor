@@ -92,7 +92,7 @@ export const Auth = () => {
               <span className="animate-pulse">Connecting...</span>
             ) : (
               <>
-                <GithubIcon className="h-5 w-5 text-white" />
+                <GithubIcon className="h-5 w-5 text-white fill-current" />
                 Sign in with GitHub
               </>
             )}
