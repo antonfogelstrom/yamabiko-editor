@@ -7,6 +7,7 @@ import { Sidebar } from "./components/Sidebar";
 import { DialogueEntry } from "./components/DialogueEntry";
 import { ChoiceEntry } from "./components/ChoiceEntry";
 import { Auth } from "./components/Auth";
+import { arrayMove } from "@dnd-kit/sortable";
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -53,12 +54,11 @@ function App() {
       .from(TABLE_NAME)
       .select("*")
       .eq("deleted", false)
-      .order("id", { ascending: true });
+      .order("order", { ascending: true }); // Change: order by 'order'
 
     if (error) console.error("Error fetching scenes:", error);
     if (data) {
       setScenes(data);
-      // If we have data, set the first one as active and snapshot it
       if (data.length > 0 && !activeId) {
         const firstId = data[0].id;
         setActiveId(firstId);
@@ -67,6 +67,31 @@ function App() {
     }
     setLoadingData(false);
   }, [activeId]);
+
+  const handleReorder = async (oldIndex: number, newIndex: number) => {
+    const newScenes = arrayMove(scenes, oldIndex, newIndex);
+
+    // Optimistic UI update
+    setScenes(newScenes);
+
+    // Prepare batch update for database
+    const updates = newScenes.map((scene, index) => ({
+      id: scene.id,
+      order: index, // Update the order field to match new array index
+      data: scene.data, // Supabase update requires all non-nullable fields or use a specific RPC
+      deleted: false,
+    }));
+
+    const { error } = await supabase
+      .schema(SCHEMA)
+      .from(TABLE_NAME)
+      .upsert(updates);
+
+    if (error) {
+      console.error("Error updating order:", error);
+      fetchScenes(); // Rollback on error
+    }
+  };
 
   // 2. Fetch Data when Session exists
   useEffect(() => {
@@ -120,10 +145,16 @@ function App() {
       dialogue: [],
     };
 
+    const newOrder = scenes.length; // Set to end of list
+
     const { data, error } = await supabase
       .schema(SCHEMA)
       .from(TABLE_NAME)
-      .insert({ data: newSceneData, deleted: false })
+      .insert({
+        data: newSceneData,
+        deleted: false,
+        order: newOrder, // Set initial order
+      })
       .select()
       .single();
 
@@ -258,6 +289,7 @@ function App() {
         onSelect={handleSceneSelect}
         onDelete={deleteScene}
         onCreate={createScene}
+        onReorder={handleReorder}
       />
 
       {/* Main Content Area */}

@@ -1,4 +1,20 @@
-import React, { useRef } from "react"; // 1. Import useRef
+import React, { useRef } from "react";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { SceneRow, SceneData } from "../lib/types";
 import { supabase } from "../lib/supabase";
 
@@ -11,7 +27,103 @@ interface Props {
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onCreate: (importedData?: SceneData) => void;
+  onReorder: (oldIndex: number, newIndex: number) => void;
 }
+
+interface SortableItemProps {
+  scene: SceneRow;
+  activeId: number | null;
+  onSelect: (id: number) => void;
+  onDelete: (id: number) => void;
+  onClose: () => void;
+}
+
+const SortableSceneItem = ({
+  scene,
+  activeId,
+  onSelect,
+  onDelete,
+  onClose,
+}: SortableItemProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: scene.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 60 : "auto",
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`
+        group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors
+        ${
+          scene.id === activeId
+            ? "bg-indigo-600 text-white shadow-md"
+            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+        }
+      `}
+      onClick={() => {
+        onSelect(scene.id);
+        onClose();
+      }}
+    >
+      {/* Drag Handle Icon */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="mr-2 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white"
+      >
+        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" />
+        </svg>
+      </div>
+
+      <span className="truncate font-medium text-sm flex-1 mr-2">
+        {scene.data.name || "Untitled Scene"}
+      </span>
+
+      {scene.id === activeId && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(scene.id);
+          }}
+          className={`
+            p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity
+            ${scene.id === activeId ? "hover:bg-indigo-700 text-indigo-200" : "hover:bg-slate-700 text-slate-400 hover:text-red-400"}
+            md:opacity-100 focus:opacity-100
+          `}
+          aria-label="Delete scene"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+            />
+          </svg>
+        </button>
+      )}
+    </div>
+  );
+};
 
 export const Sidebar: React.FC<Props> = ({
   scenes,
@@ -22,7 +134,24 @@ export const Sidebar: React.FC<Props> = ({
   onSelect,
   onDelete,
   onCreate,
+  onReorder,
 }) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = scenes.findIndex((s) => s.id === active.id);
+      const newIndex = scenes.findIndex((s) => s.id === over.id);
+      onReorder(oldIndex, newIndex);
+    }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
@@ -107,59 +236,31 @@ export const Sidebar: React.FC<Props> = ({
 
         {/* Scene List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {scenes.map((scene) => (
-            <div
-              key={scene.id}
-              onClick={() => {
-                onSelect(scene.id);
-                onClose(); // Close drawer on mobile selection
-              }}
-              className={`
-                group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors
-                ${
-                  scene.id === activeId
-                    ? "bg-indigo-600 text-white shadow-md"
-                    : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                }
-              `}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={scenes.map((s) => s.id)}
+              strategy={verticalListSortingStrategy}
             >
-              <span className="truncate font-medium text-sm flex-1 mr-2">
-                {scene.data.name || "Untitled Scene"}
-              </span>
-              {scene.id === activeId && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(scene.id);
-                  }}
-                  className={`
-                    p-1.5 rounded-md opacity-0 group-hover:opacity-100 transition-opacity
-                    ${scene.id === activeId ? "hover:bg-indigo-700 text-indigo-200" : "hover:bg-slate-700 text-slate-400 hover:text-red-400"}
-                    md:opacity-100 focus:opacity-100
-                  `}
-                  aria-label="Delete scene"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                    />
-                  </svg>
-                </button>
-              )}
-            </div>
-          ))}
+              {scenes.map((scene) => (
+                <SortableSceneItem
+                  key={scene.id}
+                  scene={scene}
+                  activeId={activeId}
+                  onSelect={onSelect}
+                  onDelete={onDelete}
+                  onClose={onClose}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
 
           {scenes.length === 0 && (
             <div className="text-center py-8 text-slate-500 text-sm">
-              No scenes yet. Create one!
+              No scenes yet.
             </div>
           )}
         </div>
