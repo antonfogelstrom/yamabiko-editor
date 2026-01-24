@@ -1,6 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase, SCHEMA, TABLE_NAME } from "./lib/supabase";
-import type { SceneRow, SceneData, DialogueItem } from "./lib/types";
+import {
+  supabase,
+  SCHEMA,
+  SCENES,
+  BACKGROUNDS,
+  MOODS,
+  NAMES,
+  PORTRAITS,
+} from "./lib/supabase";
+import type { BaseData, SceneRow, SceneData, DialogueItem } from "./lib/types";
 import type { Session } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
 import { Sidebar } from "./components/Sidebar";
@@ -15,6 +23,10 @@ function App() {
 
   // App Content State
   const [scenes, setScenes] = useState<SceneRow[]>([]);
+  const [backgrounds, setBackgrounds] = useState<BaseData[]>([]);
+  const [moods, setMoods] = useState<BaseData[]>([]);
+  const [names, setNames] = useState<BaseData[]>([]);
+  const [portraits, setPortraits] = useState<BaseData[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -51,7 +63,7 @@ function App() {
     setLoadingData(true);
     const { data, error } = await supabase
       .schema(SCHEMA)
-      .from(TABLE_NAME)
+      .from(SCENES)
       .select("*")
       .eq("deleted", false)
       .order("order", { ascending: true }); // Change: order by 'order'
@@ -67,6 +79,23 @@ function App() {
     }
     setLoadingData(false);
   }, [activeId]);
+
+  const fetchBaseData = useCallback(
+    async (table: string, setter: (data: BaseData[]) => void) => {
+      setLoadingData(true);
+      const { data, error } = await supabase
+        .schema(SCHEMA)
+        .from(table)
+        .select("*");
+
+      if (error) console.error("Error fetching backgrounds:", error);
+      if (data) {
+        setter(data);
+      }
+      setLoadingData(false);
+    },
+    [],
+  );
 
   const handleReorder = async (oldIndex: number, newIndex: number) => {
     const newScenes = arrayMove(scenes, oldIndex, newIndex);
@@ -84,7 +113,7 @@ function App() {
 
     const { error } = await supabase
       .schema(SCHEMA)
-      .from(TABLE_NAME)
+      .from(SCENES)
       .upsert(updates);
 
     if (error) {
@@ -107,6 +136,19 @@ function App() {
 
     fetchData();
   }, [session, fetchScenes]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (session) {
+        await fetchBaseData(BACKGROUNDS, setBackgrounds);
+        await fetchBaseData(MOODS, setMoods);
+        await fetchBaseData(NAMES, setNames);
+        await fetchBaseData(PORTRAITS, setPortraits);
+      }
+    };
+
+    fetchData();
+  }, [session, fetchBaseData]);
 
   // Handle Safe Scene Switching
   const handleSceneSelect = (id: number) => {
@@ -149,7 +191,7 @@ function App() {
 
     const { data, error } = await supabase
       .schema(SCHEMA)
-      .from(TABLE_NAME)
+      .from(SCENES)
       .insert({
         data: newSceneData,
         deleted: false,
@@ -171,7 +213,7 @@ function App() {
     if (!confirm("Are you sure you want to delete this scene?")) return;
     const { error } = await supabase
       .schema(SCHEMA)
-      .from(TABLE_NAME)
+      .from(SCENES)
       .update({ deleted: true })
       .eq("id", id);
     if (!error) {
@@ -199,7 +241,7 @@ function App() {
     setSaving(true);
     const { error } = await supabase
       .schema(SCHEMA)
-      .from(TABLE_NAME)
+      .from(SCENES)
       .update({ data: activeScene.data })
       .eq("id", activeId);
 
@@ -389,9 +431,8 @@ function App() {
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
                     Background Key
                   </label>
-                  <input
-                    type="text"
-                    className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  <select
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
                     value={activeScene.data.background}
                     onChange={(e) =>
                       updateActiveScene((d) => ({
@@ -399,21 +440,31 @@ function App() {
                         background: e.target.value,
                       }))
                     }
-                  />
+                  >
+                    {backgrounds.map((background) => (
+                      <option key={background.id} value={background.value}>
+                        {background.value}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                    Next Scene ID
+                    Next Scene
                   </label>
-                  <input
-                    type="text"
-                    className="block w-full rounded-md border-slate-300 bg-slate-50 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                  <select
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
                     value={activeScene.data.next}
-                    placeholder="UUID"
                     onChange={(e) =>
                       updateActiveScene((d) => ({ ...d, next: e.target.value }))
                     }
-                  />
+                  >
+                    {scenes.map((scene) => (
+                      <option key={scene.id} value={scene.data.id}>
+                        {scene.data.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div className="sm:col-span-2">
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
@@ -460,6 +511,9 @@ function App() {
                     <DialogueEntry
                       key={idx}
                       item={item}
+                      names={names}
+                      portraits={portraits}
+                      moods={moods}
                       onChange={(updated) => {
                         const newArr = [...activeScene.data.dialogue];
                         newArr[idx] = updated;

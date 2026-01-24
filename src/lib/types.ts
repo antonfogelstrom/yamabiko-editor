@@ -1,6 +1,8 @@
 export interface Portrait {
   key: string;
-  position: 'left' | 'right';
+  position?: "left" | "right";
+  mood?: string;
+  name?: string;
 }
 
 export interface ChoiceOption {
@@ -36,4 +38,9 @@ export interface SceneRow {
   id: number; // int8 primary key
   data: SceneData;
   deleted: boolean;
+}
+
+export interface BaseData {
+  id: number;
+  value: string;
 }
