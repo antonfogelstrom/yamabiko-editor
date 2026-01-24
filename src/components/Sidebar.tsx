@@ -64,6 +64,8 @@ const SortableSceneItem = ({
   return (
     <div
       ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       style={style}
       className={`
         group flex items-center justify-between p-3 rounded-lg cursor-pointer transition-colors
@@ -79,11 +81,7 @@ const SortableSceneItem = ({
       }}
     >
       {/* Drag Handle Icon */}
-      <div
-        {...attributes}
-        {...listeners}
-        className="mr-2 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white"
-      >
+      <div className="mr-2 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white">
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" />
         </svg>
