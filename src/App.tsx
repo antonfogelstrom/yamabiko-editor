@@ -102,22 +102,24 @@ function App() {
     }
   };
 
-  const createScene = async () => {
-    // Optional: Check dirty state before creating new?
-    // Usually safe to just create, but let's be consistent if desired.
+  const createScene = async (importedData?: SceneData) => {
     if (
       isDirty &&
-      !window.confirm("You have unsaved changes. Create new scene anyway?")
+      !window.confirm(
+        "You have unsaved changes. Create/Import new scene anyway?",
+      )
     )
       return;
 
-    const newSceneData: SceneData = {
+    // Use imported data if provided, otherwise create default
+    const newSceneData: SceneData = importedData || {
       id: uuidv4(),
       name: "New Scene",
       background: "",
       next: "",
       dialogue: [],
     };
+
     const { data, error } = await supabase
       .schema(SCHEMA)
       .from(TABLE_NAME)

@@ -1,5 +1,5 @@
-import React from "react";
-import type { SceneRow } from "../lib/types";
+import React, { useRef } from "react"; // 1. Import useRef
+import type { SceneRow, SceneData } from "../lib/types";
 import { supabase } from "../lib/supabase";
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
   onClose: () => void;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
-  onCreate: () => void;
+  onCreate: (importedData?: SceneData) => void;
 }
 
 export const Sidebar: React.FC<Props> = ({
@@ -23,8 +23,32 @@ export const Sidebar: React.FC<Props> = ({
   onDelete,
   onCreate,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        // Basic validation: check if it has required SceneData fields
+        if (json.id && Array.isArray(json.dialogue)) {
+          onCreate(json);
+        } else {
+          alert("Invalid Scene JSON format.");
+        }
+      } catch {
+        alert("Error parsing JSON file.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   // Base classes for the sidebar container
@@ -142,6 +166,13 @@ export const Sidebar: React.FC<Props> = ({
 
         {/* Footer Actions */}
         <div className="p-4 border-t border-slate-800 space-y-3 bg-slate-900">
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept=".json"
+            onChange={handleFileChange}
+          />
           <button
             onClick={() => {
               onCreate();
@@ -164,6 +195,26 @@ export const Sidebar: React.FC<Props> = ({
             </svg>
             New Scene
           </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="hidden md:flex w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-medium text-sm transition-colors items-center justify-center gap-2 border border-slate-700"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
+            </svg>
+            Import JSON
+          </button>
+
           <button
             onClick={handleLogout}
             className="w-full py-2.5 px-4 bg-transparent border border-slate-700 text-slate-400 hover:text-white hover:border-slate-500 rounded-lg font-medium text-sm transition-colors"
