@@ -53,6 +53,7 @@ export const DialogueEntry: React.FC<Props> = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+        
         <div>
           <label className="block text-xs font-medium text-slate-500 mb-1">
             Portrait Key
