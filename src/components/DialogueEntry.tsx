@@ -1,5 +1,5 @@
-import React from 'react';
-import type { DialogueItem } from '../lib/types';
+import React from "react";
+import type { DialogueItem } from "../lib/types";
 
 interface Props {
   item: DialogueItem;
@@ -7,65 +7,91 @@ interface Props {
   onRemove: () => void;
 }
 
-export const DialogueEntry: React.FC<Props> = ({ item, onChange, onRemove }) => {
+export const DialogueEntry: React.FC<Props> = ({
+  item,
+  onChange,
+  onRemove,
+}) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleChange = (field: string, value: any) => {
-    // Deep update logic
-    if (field === 'text') {
+    if (field === "text") {
       onChange({ ...item, text: value });
     } else {
       onChange({
         ...item,
-        portrait: { ...item.portrait, [field]: value } as any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        portrait: { ...item.portrait, [field]: value } as any,
       });
     }
   };
 
   return (
-    <div className="entry" style={{ 
-      position: 'relative', 
-      background: 'white', 
-      border: '1px solid var(--border)', 
-      padding: '24px', 
-      marginBottom: '20px', 
-      borderRadius: 'var(--radius-md)',
-      borderLeft: '4px solid var(--primary)'
-    }}>
-      <button 
-        onClick={onRemove}
-        style={{
-            position: 'absolute', top: '16px', right: '16px', borderRadius: '50%',
-            width: '28px', height: '28px', border: '1px solid var(--border)',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'white'
-        }}
-        className="btn-remove-hover"
-      >✕</button>
-      
-      <div className="row">
+    <div className="relative bg-white border border-slate-200 rounded-xl shadow-sm p-4 sm:p-6 mb-4 transition-shadow hover:shadow-md border-l-4 border-l-indigo-500">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wider">
+          Dialogue
+        </h3>
+        <button
+          onClick={onRemove}
+          className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-full transition-colors"
+          title="Remove Block"
+        >
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
         <div>
-          <label>Portrait Key</label>
-          <input 
-            type="text" 
-            value={item.portrait?.key || ''} 
-            onChange={(e) => handleChange('key', e.target.value)} 
+          <label className="block text-xs font-medium text-slate-500 mb-1">
+            Portrait Key
+          </label>
+          <input
+            type="text"
+            className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+            placeholder="e.g. hero_smile"
+            value={item.portrait?.key || ""}
+            onChange={(e) => handleChange("key", e.target.value)}
           />
         </div>
         <div>
-          <label>Position</label>
-          <select 
-            value={item.portrait?.position || 'left'} 
-            onChange={(e) => handleChange('position', e.target.value)}
+          <label className="block text-xs font-medium text-slate-500 mb-1">
+            Position
+          </label>
+          <select
+            className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+            value={item.portrait?.position || "left"}
+            onChange={(e) => handleChange("position", e.target.value)}
           >
             <option value="left">Left</option>
             <option value="right">Right</option>
           </select>
         </div>
       </div>
-      <label>Text</label>
-      <textarea 
-        value={item.text || ''} 
-        onChange={(e) => handleChange('text', e.target.value)} 
-      />
+
+      <div>
+        <label className="block text-xs font-medium text-slate-500 mb-1">
+          Dialogue Text
+        </label>
+        <textarea
+          rows={3}
+          className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50 resize-y min-h-20"
+          placeholder="What does the character say?"
+          value={item.text || ""}
+          onChange={(e) => handleChange("text", e.target.value)}
+        />
+      </div>
     </div>
   );
 };

@@ -25,53 +25,49 @@ export const Auth = () => {
       });
       if (error) throw error;
     } catch {
-      setMessage({ text: "An error occurred", type: "error" });
+      setMessage({ text: "An error occurred during sign in", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "var(--bg-body)",
-      }}
-    >
-      <div style={{ maxWidth: "400px", width: "100%", padding: "40px" }}>
+    <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 px-4 py-12 sm:px-6 lg:px-8">
+      <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-2xl shadow-xl border border-slate-100">
+        <div className="text-center">
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+            Welcome Back
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Sign in to manage your dialogue scenes
+          </p>
+        </div>
+
         {message && (
           <div
-            style={{
-              padding: "12px",
-              marginBottom: "20px",
-              borderRadius: "var(--radius-md)",
-              background: message.type === "error" ? "#fee2e2" : "#dcfce7",
-              color:
-                message.type === "error" ? "var(--danger)" : "var(--success)",
-              border: `1px solid ${message.type === "error" ? "#fecaca" : "#bbf7d0"}`,
-            }}
+            className={`p-4 rounded-lg text-sm font-medium ${
+              message.type === "error"
+                ? "bg-red-50 text-red-700 border border-red-200"
+                : "bg-green-50 text-green-700 border border-green-200"
+            }`}
           >
             {message.text}
           </div>
         )}
 
-        <form onSubmit={handleAuth}>
+        <form className="mt-8 space-y-6" onSubmit={handleAuth}>
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: "100%", padding: "12px" }}
             disabled={loading}
+            className="group relative flex w-full justify-center items-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition-all hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {loading ? (
-              "Processing..."
+              <span className="animate-pulse">Connecting...</span>
             ) : (
-              <div className="text-2xl text-black flex gap-2">
-                Sign in with github
-                <GithubIcon className="w-8" />
-              </div>
+              <>
+                <GithubIcon className="h-5 w-5 text-white" />
+                Sign in with GitHub
+              </>
             )}
           </button>
         </form>
