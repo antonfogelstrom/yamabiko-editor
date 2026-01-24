@@ -16,7 +16,19 @@ function App() {
   const [scenes, setScenes] = useState<SceneRow[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [loadingData, setLoadingData] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // Mobile sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Dirty State Tracking
+  const [originalSnapshot, setOriginalSnapshot] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  // Derived State
+  const activeScene = scenes.find((s) => s.id === activeId);
+
+  // Check if current data matches the snapshot we took on load/save
+  const isDirty = activeScene
+    ? JSON.stringify(activeScene.data) !== originalSnapshot
+    : false;
 
   // 1. Handle Auth Session on Mount
   useEffect(() => {
@@ -46,7 +58,12 @@ function App() {
     if (error) console.error("Error fetching scenes:", error);
     if (data) {
       setScenes(data);
-      if (data.length > 0 && !activeId) setActiveId(data[0].id);
+      // If we have data, set the first one as active and snapshot it
+      if (data.length > 0 && !activeId) {
+        const firstId = data[0].id;
+        setActiveId(firstId);
+        setOriginalSnapshot(JSON.stringify(data[0].data));
+      }
     }
     setLoadingData(false);
   }, [activeId]);
@@ -59,13 +76,41 @@ function App() {
       } else {
         setScenes([]);
         setActiveId(null);
+        setOriginalSnapshot("");
       }
     };
 
     fetchData();
   }, [session, fetchScenes]);
 
+  // Handle Safe Scene Switching
+  const handleSceneSelect = (id: number) => {
+    if (id === activeId) return;
+
+    if (isDirty) {
+      const confirmSwitch = window.confirm(
+        "You have unsaved changes. Are you sure you want to switch scenes? Unsaved changes will be lost.",
+      );
+      if (!confirmSwitch) return;
+    }
+
+    // Proceed to switch
+    const targetScene = scenes.find((s) => s.id === id);
+    if (targetScene) {
+      setActiveId(id);
+      setOriginalSnapshot(JSON.stringify(targetScene.data));
+    }
+  };
+
   const createScene = async () => {
+    // Optional: Check dirty state before creating new?
+    // Usually safe to just create, but let's be consistent if desired.
+    if (
+      isDirty &&
+      !window.confirm("You have unsaved changes. Create new scene anyway?")
+    )
+      return;
+
     const newSceneData: SceneData = {
       id: uuidv4(),
       name: "New Scene",
@@ -86,6 +131,7 @@ function App() {
     }
     setScenes((prev) => [...prev, data]);
     setActiveId(data.id);
+    setOriginalSnapshot(JSON.stringify(data.data));
   };
 
   const deleteScene = async (id: number) => {
@@ -96,8 +142,12 @@ function App() {
       .update({ deleted: true })
       .eq("id", id);
     if (!error) {
-      setScenes((prev) => prev.filter((s) => s.id !== id));
-      if (activeId === id) setActiveId(null);
+      const remaining = scenes.filter((s) => s.id !== id);
+      setScenes(remaining);
+      if (activeId === id) {
+        setActiveId(null);
+        setOriginalSnapshot("");
+      }
     }
   };
 
@@ -109,10 +159,6 @@ function App() {
       ),
     );
   };
-
-  // Auto-save
-  const activeScene = scenes.find((s) => s.id === activeId);
-  const [saving, setSaving] = useState(false);
 
   const saveScene = async () => {
     if (!activeScene || !session) return;
@@ -128,7 +174,8 @@ function App() {
       console.error("Error saving scene:", error);
       alert("Failed to save scene.");
     } else {
-      console.log("Saved successfully");
+      // Update snapshot on success so button becomes disabled
+      setOriginalSnapshot(JSON.stringify(activeScene.data));
     }
     setSaving(false);
   };
@@ -206,7 +253,7 @@ function App() {
         userEmail={session.user.email}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        onSelect={setActiveId}
+        onSelect={handleSceneSelect}
         onDelete={deleteScene}
         onCreate={createScene}
       />
@@ -264,14 +311,20 @@ function App() {
                 </button>
                 <button
                   onClick={saveScene}
-                  disabled={saving}
+                  disabled={saving || !isDirty} // Disable if saving OR not dirty
                   className={`
                       inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white
-                      ${saving ? "bg-slate-400" : "bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500"}
-                      transition-colors
+                      transition-all duration-200
+                      ${
+                        saving
+                          ? "bg-slate-400 cursor-wait"
+                          : !isDirty
+                            ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" // Grayed out state
+                            : "bg-green-600 hover:bg-green-700 focus:ring-2 focus:ring-offset-2 focus:ring-green-500 shadow-md" // Active state
+                      }
                     `}
                 >
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? "Saving..." : isDirty ? "Save Changes" : "Saved"}
                 </button>
               </>
             )}
