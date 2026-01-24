@@ -103,7 +103,7 @@ export const DialogueEntry: React.FC<Props> = ({
         </div>
       </div>
 
-      <div>
+      <div className="mt-8">
         <label className="block text-xs font-medium text-slate-500 mb-1">
           Dialogue Text
         </label>
