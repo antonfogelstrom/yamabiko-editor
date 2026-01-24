@@ -3,10 +3,11 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  TouchSensor,
+  MouseSensor,
 } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -59,6 +60,7 @@ const SortableSceneItem = ({
     transition,
     zIndex: isDragging ? 60 : "auto",
     opacity: isDragging ? 0.5 : 1,
+    touchAction: "none",
   };
 
   return (
@@ -81,11 +83,11 @@ const SortableSceneItem = ({
       }}
     >
       {/* Drag Handle Icon */}
-      <div className="mr-2 cursor-grab active:cursor-grabbing text-slate-500 hover:text-white">
+      {isDragging && (
         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
           <path d="M7 7h2v2H7V7zm0 4h2v2H7v-2zm4-4h2v2h-2V7zm0 4h2v2h-2v-2z" />
         </svg>
-      </div>
+      )}
 
       <span className="truncate font-medium text-sm flex-1 mr-2">
         {scene.data.name || "Untitled Scene"}
@@ -135,7 +137,15 @@ export const Sidebar: React.FC<Props> = ({
   onReorder,
 }) => {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(MouseSensor, {
+      // Require the mouse to move 5px before dragging starts
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      // Press and hold for 250ms to start dragging,
+      // allowing normal scrolling to still work.
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
