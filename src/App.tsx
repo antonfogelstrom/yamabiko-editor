@@ -237,7 +237,7 @@ function App() {
 
   const saveScene = async () => {
     if (!activeScene || !session) return;
-
+    validate();
     setSaving(true);
     const { error } = await supabase
       .schema(SCHEMA)
@@ -249,10 +249,51 @@ function App() {
       console.error("Error saving scene:", error);
       alert("Failed to save scene.");
     } else {
-      // Update snapshot on success so button becomes disabled
       setOriginalSnapshot(JSON.stringify(activeScene.data));
     }
     setSaving(false);
+  };
+
+  const validate = () => {
+    if (!activeScene) {
+      return;
+    }
+
+    if (!activeScene.data.name) {
+      activeScene.data.name = names[0].value;
+    }
+
+    if (!activeScene.data.next) {
+      activeScene.data.next = scenes[0].data.id;
+    }
+
+    if (!activeScene.data.background) {
+      activeScene.data.background = backgrounds[0].value;
+    }
+
+    activeScene.data.dialogue.map((d) => {
+      if (d.choice) {
+        return d;
+      }
+
+      if (!d.portrait) {
+        return d;
+      }
+
+      if (!d.portrait?.key) {
+        d.portrait.key = portraits[0].value;
+      }
+
+      if (!d.portrait?.mood) {
+        d.portrait.mood = moods[0].value;
+      }
+
+      if (!d.portrait?.name) {
+        d.portrait.name = names[0].value;
+      }
+
+      return d;
+    });
   };
 
   // Actions
@@ -260,7 +301,7 @@ function App() {
     updateActiveScene((data) => {
       const hasChoice = data.dialogue.some((d) => !!d.choice);
       const newEntry: DialogueItem = {
-        portrait: { key: "", position: "left" },
+        portrait: { name: "", key: "", position: "left", mood: "" },
         text: "",
       };
       const newDialogue = [...data.dialogue];
@@ -290,8 +331,9 @@ function App() {
     }));
   };
 
-  const downloadJSON = () => {
+  const downloadJSON = async () => {
     if (!activeScene) return;
+    await saveScene();
     const dataStr =
       "data:text/json;charset=utf-8," +
       encodeURIComponent(JSON.stringify(activeScene.data, null, 4));

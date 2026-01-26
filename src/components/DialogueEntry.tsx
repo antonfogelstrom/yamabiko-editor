@@ -59,48 +59,54 @@ export const DialogueEntry: React.FC<Props> = ({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
-            Name
-          </label>
-          <select
-            className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
-            value={item.portrait?.name || ""}
-            onChange={(e) => handleChange("name", e.target.value)}
-          >
-            {names.map((name) => (
-              <option key={name.id}>{name.value}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
-            Portrait
-          </label>
-          <select
-            className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
-            value={item.portrait?.key || ""}
-            onChange={(e) => handleChange("key", e.target.value)}
-          >
-            {portraits.map((portrait) => (
-              <option key={portrait.id}>{portrait.value}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-500 mb-1">
-            Mood
-          </label>
-          <select
-            className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
-            value={item.portrait?.mood || ""}
-            onChange={(e) => handleChange("mood", e.target.value)}
-          >
-            {moods.map((mood) => (
-              <option key={mood.id}>{mood.value}</option>
-            ))}
-          </select>
-        </div>
+        {names && names.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Name
+            </label>
+            <select
+              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+              value={item.portrait?.name || names[0].value}
+              onChange={(e) => handleChange("name", e.target.value)}
+            >
+              {names.map((name) => (
+                <option key={name.id}>{name.value}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {portraits && portraits.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Portrait
+            </label>
+            <select
+              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+              value={item.portrait?.key || portraits[0].value}
+              onChange={(e) => handleChange("key", e.target.value)}
+            >
+              {portraits.map((portrait) => (
+                <option key={portrait.id}>{portrait.value}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        {moods && moods.length > 0 && (
+          <div>
+            <label className="block text-xs font-medium text-slate-500 mb-1">
+              Mood
+            </label>
+            <select
+              className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+              value={item.portrait?.mood || moods[0].value}
+              onChange={(e) => handleChange("mood", e.target.value)}
+            >
+              {moods.map((mood) => (
+                <option key={mood.id}>{mood.value}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="mt-8">

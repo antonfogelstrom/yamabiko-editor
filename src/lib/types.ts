@@ -1,8 +1,8 @@
 export interface Portrait {
   key: string;
-  position?: "left" | "right";
-  mood?: string;
-  name?: string;
+  position: "left" | "right";
+  mood: string;
+  name: string;
 }
 
 export interface ChoiceOption {
@@ -24,20 +24,19 @@ export interface DialogueItem {
   choice?: ChoiceBlock;
 }
 
-// The internal JSON structure stored in the DB
 export interface SceneData {
-  id: string; // The UUID used internally by your game
-  name: string; // Internal name for the editor
+  id: string;
+  name: string;
   background: string;
   next: string;
   dialogue: DialogueItem[];
 }
 
-// The Supabase Row structure
 export interface SceneRow {
-  id: number; // int8 primary key
+  id: number;
   data: SceneData;
   deleted: boolean;
+  order: number;
 }
 
 export interface BaseData {
