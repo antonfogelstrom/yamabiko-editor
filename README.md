@@ -1,74 +1,57 @@
-# React + TypeScript + Vite
+# Yamabiko Editor
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A robust, web-based visual novel and dialogue management tool built with **React**, **TypeScript**, and **Supabase**. This editor allows creators to craft branched narratives, manage character dialogues, and export scene data as JSON for game engine integration.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## React Compiler
+* **Authentication**: Secure GitHub OAuth integration via Supabase.
+* **Scene Management**: Create, delete, and import scenes. Includes a drag-and-drop sidebar for reordering story flow.
+* **Dialogue Editor**: 
+    * Rich dialogue blocks with name, portrait, and mood selection.
+    * Dynamic "Choice Blocks" for branching paths.
+* **JSON Integration**: Export scenes to JSON format or import existing story files.
+* **Responsive Design**: Fully functional on mobile and desktop.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Technical Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+* **Frontend**: React, TypeScript, Tailwind CSS.
+* **Backend/BaaS**: Supabase (Auth & Database).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## ⚙️ Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Prerequisites
+* Node & npm
+* A Supabase project with a `scenes` table and base data tables.
+
+### Installation
+1.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+2.  **Environment Variables**: Edit the `.env` file to match your environment:
+    ```env
+    VITE_SUPABASE_URL=your_supabase_url
+    VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+    VITE_DEV_AUTH_REDIRECT=http://localhost:5173
+    VITE_PROD_AUTH_REDIRECT=https://your-domain.com
+    ```
+3.  **Run Development Server**:
+    ```bash
+    npm run dev
+    ```
+
+---
+
+## 🗄️ Database Schema
+
+Run the following SQL in your Supabase SQL Editor to set up the required tables and Row Level Security (RLS).
+
+```sql
+-- todo
 ```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-# yamabiko-editor
