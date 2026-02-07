@@ -20,6 +20,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { SceneRow, SceneData } from "../lib/types";
+import { SceneType as SceneTypeConstants } from "../lib/types";
 import { supabase } from "../lib/supabase";
 
 interface Props {
@@ -62,7 +63,9 @@ const SceneItemUI = ({
             ? "bg-indigo-600 text-white shadow-2xl scale-105 border border-indigo-400"
             : scene.id === activeId
               ? "bg-indigo-600 text-white shadow-md"
-              : "text-slate-300 hover:bg-slate-800 hover:text-white"
+              : scene.data.sceneType === SceneTypeConstants.NON_INTERACTIVE
+                ? "text-slate-400 hover:bg-slate-800 hover:text-white"
+                : "text-slate-300 hover:bg-slate-800 hover:text-white"
         }
         ${isDragging ? "opacity-30" : "opacity-100"}
       `}
@@ -83,9 +86,22 @@ const SceneItemUI = ({
         </svg>
       )}
 
-      <span className="truncate font-medium text-sm flex-1 mr-2 select-none">
-        {scene.data.name || "Untitled Scene"}
-      </span>
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        {scene.data.sceneType === SceneTypeConstants.NON_INTERACTIVE && (
+          <div className="flex-shrink-0">
+            <svg
+              className="w-3 h-3 opacity-60"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
+              <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
+        <span className="truncate font-medium text-sm select-none">
+          {scene.data.name || "Untitled Scene"}
+        </span>
+      </div>
     </div>
   );
 };

@@ -24,11 +24,19 @@ export interface DialogueItem {
   choice?: ChoiceBlock;
 }
 
+export type SceneType = "interactive" | "non-interactive";
+
+export const SceneType = {
+  INTERACTIVE: "interactive" as const,
+  NON_INTERACTIVE: "non-interactive" as const
+} as const;
+
 export interface SceneData {
   id: string;
   name: string;
   background: string;
   next: string;
+  sceneType: SceneType;
   dialogue: DialogueItem[];
 }
 

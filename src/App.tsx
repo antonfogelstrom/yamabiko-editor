@@ -8,7 +8,8 @@ import {
   NAMES,
   PORTRAITS,
 } from "./lib/supabase";
-import type { BaseData, SceneRow, SceneData, DialogueItem } from "./lib/types";
+import type { BaseData, SceneRow, SceneData, DialogueItem, SceneType } from "./lib/types";
+import { SceneType as SceneTypeConstants } from "./lib/types";
 import type { Session } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
 import { Sidebar } from "./components/Sidebar";
@@ -184,6 +185,7 @@ function App() {
       name: "New Scene",
       background: "",
       next: "",
+      sceneType: SceneTypeConstants.INTERACTIVE,
       dialogue: [],
     };
 
@@ -269,6 +271,10 @@ function App() {
 
     if (!activeScene.data.background) {
       activeScene.data.background = backgrounds[0].value;
+    }
+
+    if (!activeScene.data.sceneType) {
+      activeScene.data.sceneType = SceneTypeConstants.INTERACTIVE;
     }
 
     activeScene.data.dialogue.map((d) => {
@@ -488,6 +494,24 @@ function App() {
                         {background.value}
                       </option>
                     ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                    Scene Type
+                  </label>
+                  <select
+                    className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
+                    value={activeScene.data.sceneType}
+                    onChange={(e) =>
+                      updateActiveScene((d) => ({
+                        ...d,
+                        sceneType: e.target.value as SceneType,
+                      }))
+                    }
+                  >
+                    <option value={SceneTypeConstants.INTERACTIVE}>Interactive</option>
+                    <option value={SceneTypeConstants.NON_INTERACTIVE}>Non-Interactive</option>
                   </select>
                 </div>
                 <div>
