@@ -8,7 +8,13 @@ import {
   NAMES,
   PORTRAITS,
 } from "./lib/supabase";
-import type { BaseData, SceneRow, SceneData, DialogueItem, SceneType } from "./lib/types";
+import type {
+  BaseData,
+  SceneRow,
+  SceneData,
+  DialogueItem,
+  SceneType,
+} from "./lib/types";
 import { SceneType as SceneTypeConstants } from "./lib/types";
 import type { Session } from "@supabase/supabase-js";
 import { v4 as uuidv4 } from "uuid";
@@ -67,7 +73,7 @@ function App() {
       .from(SCENES)
       .select("*")
       .eq("deleted", false)
-      .order("order", { ascending: true }); // Change: order by 'order'
+      .order("order", { ascending: true });
 
     if (error) console.error("Error fetching scenes:", error);
     if (data) {
@@ -107,8 +113,8 @@ function App() {
     // Prepare batch update for database
     const updates = newScenes.map((scene, index) => ({
       id: scene.id,
-      order: index, // Update the order field to match new array index
-      data: scene.data, // Supabase update requires all non-nullable fields or use a specific RPC
+      order: index,
+      data: scene.data,
       deleted: false,
     }));
 
@@ -167,6 +173,8 @@ function App() {
     if (targetScene) {
       setActiveId(id);
       setOriginalSnapshot(JSON.stringify(targetScene.data));
+      // Validate scene data after switching to ensure backward compatibility
+      setTimeout(() => validate(), 0);
     }
   };
 
@@ -185,7 +193,7 @@ function App() {
       name: "New Scene",
       background: "",
       next: "",
-      sceneType: SceneTypeConstants.INTERACTIVE,
+      scene_type: SceneTypeConstants.INTERACTIVE,
       dialogue: [],
     };
 
@@ -209,6 +217,8 @@ function App() {
     setScenes((prev) => [...prev, data]);
     setActiveId(data.id);
     setOriginalSnapshot(JSON.stringify(data.data));
+    // Validate new scene data
+    setTimeout(() => validate(), 0);
   };
 
   const deleteScene = async (id: number) => {
@@ -261,20 +271,31 @@ function App() {
       return;
     }
 
-    if (!activeScene.data.name) {
-      activeScene.data.name = names[0].value;
+    let needsUpdate = false;
+    const updatedData = { ...activeScene.data };
+
+    if (!updatedData.name && names.length > 0) {
+      updatedData.name = names[0].value;
+      needsUpdate = true;
     }
 
-    if (!activeScene.data.next) {
-      activeScene.data.next = scenes[0].data.id;
+    if (!updatedData.next && scenes.length > 0) {
+      updatedData.next = scenes[0].data.id;
+      needsUpdate = true;
     }
 
-    if (!activeScene.data.background) {
-      activeScene.data.background = backgrounds[0].value;
+    if (!updatedData.background && backgrounds.length > 0) {
+      updatedData.background = backgrounds[0].value;
+      needsUpdate = true;
     }
 
-    if (!activeScene.data.sceneType) {
-      activeScene.data.sceneType = SceneTypeConstants.INTERACTIVE;
+    if (!updatedData.scene_type) {
+      updatedData.scene_type = SceneTypeConstants.INTERACTIVE;
+      needsUpdate = true;
+    }
+
+    if (needsUpdate) {
+      updateActiveScene(() => updatedData);
     }
 
     activeScene.data.dialogue.map((d) => {
@@ -502,16 +523,20 @@ function App() {
                   </label>
                   <select
                     className="block w-full rounded-md border-slate-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm py-2 px-3 bg-slate-50"
-                    value={activeScene.data.sceneType}
+                    value={activeScene.data.scene_type}
                     onChange={(e) =>
                       updateActiveScene((d) => ({
                         ...d,
-                        sceneType: e.target.value as SceneType,
+                        scene_type: e.target.value as SceneType,
                       }))
                     }
                   >
-                    <option value={SceneTypeConstants.INTERACTIVE}>Interactive</option>
-                    <option value={SceneTypeConstants.NON_INTERACTIVE}>Non-Interactive</option>
+                    <option value={SceneTypeConstants.INTERACTIVE}>
+                      Interactive
+                    </option>
+                    <option value={SceneTypeConstants.NON_INTERACTIVE}>
+                      Non-Interactive
+                    </option>
                   </select>
                 </div>
                 <div>

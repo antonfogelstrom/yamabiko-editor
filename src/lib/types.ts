@@ -28,7 +28,7 @@ export type SceneType = "interactive" | "non-interactive";
 
 export const SceneType = {
   INTERACTIVE: "interactive" as const,
-  NON_INTERACTIVE: "non-interactive" as const
+  NON_INTERACTIVE: "non-interactive" as const,
 } as const;
 
 export interface SceneData {
@@ -36,7 +36,7 @@ export interface SceneData {
   name: string;
   background: string;
   next: string;
-  sceneType: SceneType;
+  scene_type: SceneType;
   dialogue: DialogueItem[];
 }
 
